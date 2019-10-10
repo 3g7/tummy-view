@@ -16,4 +16,4 @@ import Vue from 'vue'
 import Quasar from 'quasar'
 
 
-Vue.use(Quasar, { config: {} })
+Vue.use(Quasar, { config: {"loadingBar":{"color":"blue"}} })
