@@ -5,6 +5,10 @@ const URL = '/chatmsg'
 const ChatmsgService = {
   pageableSearch: (search) => {
     return axios.fetchGet(URL + '?pageable=true', search)
+  },
+
+  rank: (search) => {
+    return axios.fetchGet(URL + '/rank', search)
   }
 }
 

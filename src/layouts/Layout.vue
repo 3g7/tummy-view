@@ -16,25 +16,26 @@
           flat
           icon="person"
           stretch
-          label="就叫三个七"
+          :key="current.id"
+          :label="current.nickname"
         >
           <div class="row no-wrap q-pa-md">
             <div class="column items-center">
               <q-avatar size="64px">
-                <img src="https://cdn.quasar.dev/img/boy-avatar.png">
+                <img :src="current.avatar">
               </q-avatar>
 
-              <div class="text-subtitle2 q-mt-md q-mb-xs">就叫三个七</div>
+              <div class="text-subtitle2 q-mt-md q-mb-xs">{{current.nickname}}</div>
 
-              <div class="text-h7 q-mb-md">3g7@fayelau.com</div>
+              <div class="text-h7 q-mb-md">{{current.username}}</div>
             </div>
 
             <q-separator vertical inset class="q-mx-lg" />
 
             <div class="column">
-              <q-btn flat color="primary" icon="build" label="系统管理" style="margin-bottom:8px;"/>
-              <q-btn flat color="primary" icon="vpn_key" label="修改密码" style="margin-bottom:8px;"/>
-              <q-btn flat color="deep-orange" icon="block" label="退出登录" />
+              <q-btn flat color="primary" icon="build" label="系统管理" style="margin-bottom:8px;" @click="coding"/>
+              <q-btn flat color="primary" icon="vpn_key" label="修改密码" style="margin-bottom:8px;" @click="coding"/>
+              <q-btn flat color="deep-orange" icon="block" label="退出登录" @click="logout"/>
             </div>
 
           </div>
@@ -51,16 +52,17 @@
       <router-link tag="div" to="/">
         <div class="row flex-center bg-white" style="height: 115px;">
           <q-avatar rounded size="75px">
-            <img alt="Tummy logo" src="~assets/xdz.gif">
+            <img alt="Tummy logo" src="~assets/xdz.png">
           </q-avatar>
-          <div class="caption q-ml-md">
+          <div class="caption q-ml-md text-bold">
             Tummy System
+            <div class="text-italic text-yellow-10">1.0.1 bate</div>
           </div>
         </div>
       </router-link>
       <q-list>
         <q-item-label header>功能列表</q-item-label>
-        <q-item clickable :to="feature.path" active-class="bg-blue-1 text-blue-9" v-for="feature of features" :key="feature.id">
+        <q-item v-show="!feature.coding" clickable :to="feature.path" active-class="bg-blue-1 text-blue-9" v-for="feature of features" :key="feature.id">
           <q-item-section avatar>
             <q-icon :name="feature.icon" />
           </q-item-section>
@@ -95,7 +97,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="我已知晓并同意以上信息" color="primary" v-close-popup />
+          <q-btn flat label="我已知晓并同意以上信息" color="primary" v-close-popup @click="closeAlert" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -103,19 +105,27 @@
 </template>
 
 <script>
+import Storage from '../services/Storage'
 export default {
-  name: 'MyLayout',
+  name: 'Layout',
 
   data () {
     return {
-      alert: true,
+      alert: false,
       leftDrawerOpen: false,
+      current: {},
       features: [
+        // {
+        //   path: '/danmu_and_gift',
+        //   icon: 'message',
+        //   label: '弹幕与礼物',
+        //   desc: '对弹幕与礼物的历史进行详尽查询'
+        // },
         {
           path: '/danmu',
           icon: 'message',
           label: '弹幕查询',
-          desc: '对直播间弹幕历史进行详尽查询'
+          desc: '对直播间的弹幕信息进行详尽查询'
         },
         {
           path: '/gift',
@@ -124,31 +134,74 @@ export default {
           desc: '对直播间收到的礼物进行详尽查询'
         },
         {
-          path: '/newblackres',
+          path: '/uenter',
+          icon: 'directions_run',
+          label: '入场记录',
+          desc: '水友进入直播间的记录'
+        },
+        {
+          path: '/blackres',
           icon: 'block',
           label: '封禁记录',
           desc: '直播间封禁回执信息'
         },
         {
+          path: '/rank',
+          icon: 'format_list_numbered',
+          label: '水友排行榜',
+          desc: '水友发送弹幕的排行榜'
+        },
+        {
           path: '/qqgroup',
           icon: 'group',
           label: '群信息查询',
-          desc: 'QQ群：265438的信息查询'
+          desc: 'QQ群：265438的信息查询',
+          coding: true
         },
         {
           path: '/brand',
           icon: 'how_to_reg',
           label: '粉丝牌查询',
-          desc: '只能查询在直播间发过言的水友'
+          desc: '只能查询在直播间发过言的水友',
+          coding: true
         },
         {
           path: '/live',
           icon: 'sync',
           label: '实时直播消息',
-          desc: '实时获取清晰明确的直播间消息'
+          desc: '实时获取清晰明确的直播间消息',
+          coding: true
         }
       ]
     }
+  },
+
+  methods: {
+    closeAlert: function () {
+      Storage.set('isNotFirst', true)
+    },
+
+    logout: function () {
+      Storage.remove('token')
+      this.$router.push('/')
+    },
+
+    coding () {
+      this.$q.notify({
+        message: '功能尚在开发中',
+        color: 'red',
+        icon: 'warning',
+        position: 'top',
+        timeout: 2500
+      })
+    }
+  },
+
+  mounted () {
+    if (!Storage.get('isNotFirst')) {
+      this.alert = false
+    }
+    this.current = Storage.get('current')
   }
 }
 </script>

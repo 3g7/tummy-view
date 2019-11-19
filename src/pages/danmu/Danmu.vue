@@ -2,15 +2,15 @@
   <div>
     <!-- place QPageSticky at end of page -->
     <q-page-sticky expand position="top" style="z-index:1">
-        <q-toolbar class="bg-blue-1 text-primary" style="padding: 12px">
-            <div class="row q-col-gutter-md">
-                <div class="col-8">
-                    <q-input color="blue" clearable square outlined v-model="search.nickname" label="斗鱼ID"></q-input>
-                </div>
-                <!-- <div class="col">
+      <q-toolbar class="bg-blue-1 text-primary" style="padding: 12px">
+        <div class="row q-col-gutter-md">
+          <div class="col-10">
+            <q-input color="blue" clearable square outlined v-model="search.nickname" label="斗鱼ID"></q-input>
+          </div>
+          <!-- <div class="col">
                     <q-input color="blue" clearable square outlined v-model="search.txt" label="弹幕内容"></q-input>
-                </div> -->
-                <!-- <div class="col">
+          </div>-->
+          <!-- <div class="col">
                     <q-input color="blue" clearable square outlined v-model="search.start" label="开始时间" mask="date">
                         <template v-slot:append>
                             <q-icon name="event" class="cursor-pointer">
@@ -31,19 +31,27 @@
                             </q-icon>
                         </template>
                     </q-input>
-                </div> -->
-                <div class="col">
-                    <q-btn :loading="isSearching" round outline color="primary" size="19px" icon="search" @click="doSearch()"></q-btn>
-                </div>
-            </div>
-        </q-toolbar>
+          </div>-->
+          <div class="col">
+            <q-btn
+              :loading="isSearching"
+              round
+              outline
+              color="primary"
+              size="19px"
+              icon="search"
+              @click="doSearch()"
+            ></q-btn>
+          </div>
+        </div>
+      </q-toolbar>
     </q-page-sticky>
-    <q-infinite-scroll ref="infiniteScrollRef" @load="onLoad" style="margin-top:80px;">
+    <q-infinite-scroll ref="infiniteScrollRef" @load="onLoad" style="margin-top:80px">
       <q-item-label header>当前条件共有 {{total | NumFormat}} 条弹幕</q-item-label>
       <div v-for="(item, index) in items" :key="index">
         <q-item>
           <q-item-section class="col-1">
-            <p class="text-italic">{{index + 1}}</p>
+            <p class="text-italic">{{index + 1}}.</p>
           </q-item-section>
           <q-item-section avatar top style="margin-right:16px">
             <q-avatar>
@@ -51,27 +59,51 @@
             </q-avatar>
           </q-item-section>
 
-          <q-item-section top class="col-2">
+          <q-item-section top class="col-lg-1 col-md-2">
             <q-item-label class="text-weight-medium">{{item.nickname}}</q-item-label>
             <q-item-label caption lines="1">
-                <q-badge color="blue">
-                    {{item.fansBrand}} {{item.fansLevel}}
-                </q-badge>
+              <q-badge color="blue">{{item.fansBrand}} {{item.fansLevel}}</q-badge>
             </q-item-label>
           </q-item-section>
 
           <q-item-section top>
             <q-item-label lines="3">
-              <span class="text-weight-medium">{{item.txt}}</span>
+              <span class="text-weight-medium">
+                <q-badge color="orange">
+                  <q-icon name="house" color="white" class="q-ml-xs" />
+                  {{item.roomId}}
+                </q-badge>
+                <span> {{item.txt}}</span>
+              </span>
               <!-- <span class="text-grey-8">- GitHub repository</span> -->
             </q-item-label>
-            <q-item-label caption lines="1">发送日期 > {{item.timestamp | DateFormat}}</q-item-label>
-            <!-- <q-item-label
+            <q-item-label caption lines="1">发送时间 > {{item.timestamp | DateFormat}}</q-item-label>
+            <q-item-label
+              v-show="item.repeats.length > 0"
               lines="1"
               class="q-mt-xs text-body2 text-weight-bold text-primary text-uppercase"
             >
-              <span class="cursor-pointer">此弹幕被连续重复[10]次，点击查看详细（别点了都一样）</span>
-            </q-item-label> -->
+              <span
+                class="cursor-pointer"
+                @click="item.fold=!item.fold"
+              >此弹幕内容连续重复{{item.repeats.length}}次，已折叠</span>
+            </q-item-label>
+            <q-slide-transition style="max-width:500px">
+              <div v-show="item.fold">
+                <q-list dense bordered padding style="margin-top:16px">
+                  <!-- <q-item-label header>被折叠的内容</q-item-label> -->
+                  <div v-for="(repeat, index) in item.repeats" :key="index">
+                    <q-item dense>
+                      <q-item-section>
+                        <q-item-label lines="1">{{repeat.txt}}</q-item-label>
+                        <q-item-label caption>{{repeat.timestamp | DateFormat}}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-separator spaced v-show="index != item.repeats.length - 1" />
+                  </div>
+                </q-list>
+              </div>
+            </q-slide-transition>
           </q-item-section>
         </q-item>
         <q-separator spaced />
@@ -89,6 +121,7 @@
 </template>
 <script>
 import ChatmsgService from '../../services/ChatmsgService'
+import Storage from '../../services/Storage'
 import { formatDate, formatNum } from '../../utils/commonUtils'
 export default {
   data () {
@@ -96,7 +129,7 @@ export default {
       items: [],
       total: 0,
       search: {
-        nickname: '刘飞儿faye',
+        nickname: null,
         txt: null,
         start: null,
         end: null,
@@ -111,18 +144,6 @@ export default {
 
   methods: {
     onLoad (index, done) {
-      if (!this.search.nickname) {
-        this.$q.notify({
-          message: '数据量过大，必须输入一个昵称',
-          color: 'red',
-          icon: 'warning',
-          position: 'top',
-          timeout: 2500
-        })
-        this.goTop()
-        done()
-        return false
-      }
       if (this.items && !this.isSearching) {
         this.loadChatmsg(done)
       } else {
@@ -131,57 +152,117 @@ export default {
     },
 
     loadChatmsg (success) {
-      ChatmsgService.pageableSearch(this.search).then((response) => {
-        let data = response.data
-        if (data.success) {
-          if (data.size === 0) {
-            this.initAllData = true
-            this.$refs.infiniteScrollRef.stop()
+      ChatmsgService.pageableSearch(this.search).then(
+        response => {
+          if (response.success) {
+            if (response.size === 0) {
+              this.initAllData = true
+              this.$refs.infiniteScrollRef.stop()
+              return false
+            }
+            response.data = this.handleRepeat(response.data)
+            this.items = this.items.concat(response.data)
+            this.total = response.total
+            this.search.page += 1
+            if (success) {
+              success()
+            }
+          } else {
+            this.$q.notify({
+              message: response.message,
+              color: 'red',
+              icon: 'warning',
+              position: 'top',
+              timeout: 2500
+            })
           }
-          this.items = this.items.concat(data.data)
-          this.total = data.total
-          this.search.page += 1
-          if (success) {
-            success()
-          }
-        } else {
-          alert(data.message)
+        },
+        error => {
+          this.$q.notify({
+            message: error.response.data.message,
+            color: 'red',
+            icon: 'warning',
+            position: 'top',
+            timeout: 2500
+          })
         }
-      }, (error) => {
-        console.log(error)
-      })
+      )
     },
 
     doSearch () {
       this.goTop()
-      if (!this.search.nickname) {
-        this.$q.notify({
-          message: '数据量过大，必须输入一个昵称',
-          color: 'red',
-          icon: 'warning',
-          position: 'top',
-          timeout: 2500
-        })
-        return false
-      }
       this.$refs.infiniteScrollRef.resume()
       this.initAllData = false
       this.search.page = 0
       this.isSearching = true
-      ChatmsgService.pageableSearch(this.search).then((response) => {
-        this.isSearching = false
-        let data = response.data
-        if (data.success) {
-          this.items = data.data
-          this.total = data.total
-          this.search.page = 1
-        } else {
-          alert(data.message)
+      ChatmsgService.pageableSearch(this.search).then(
+        response => {
+          this.isSearching = false
+          if (response.success) {
+            response.data = this.handleRepeat(response.data)
+            this.items = response.data
+            this.total = response.total
+            this.search.page = 1
+          } else {
+            this.$q.notify({
+              message: response.message,
+              color: 'red',
+              icon: 'warning',
+              position: 'top',
+              timeout: 2500
+            })
+          }
+        },
+        error => {
+          this.isSearching = false
+          this.$q.notify({
+            message: error.response.data.message,
+            color: 'red',
+            icon: 'warning',
+            position: 'top',
+            timeout: 2500
+          })
         }
-      }, (error) => {
-        this.isSearching = false
-        console.log(error)
-      })
+      )
+    },
+
+    handleRepeat (chatmsgs) {
+      let result = []
+      if (chatmsgs.length <= 0) {
+        return false
+      }
+      for (let i = 0; i < chatmsgs.length; i++) {
+        chatmsgs[i].fold = false
+        chatmsgs[i].repeats = []
+        if (this.items.length > 0) {
+          let last = this.items[this.items.length - 1]
+          if (
+            last.txt === chatmsgs[i].txt &&
+            last.roomId === chatmsgs[i].roomId
+          ) {
+            this.items[this.items.length - 1].repeats.push(chatmsgs[i])
+            chatmsgs[i].isChild = true
+          }
+        }
+        if (chatmsgs[i].isChild) {
+          continue
+        }
+        chatmsgs[i].isChild = false
+        let current = chatmsgs[i]
+        for (let j = i + 1; j < chatmsgs.length; j++) {
+          if (
+            chatmsgs[j].txt === current.txt &&
+            chatmsgs[j].roomId === current.roomId
+          ) {
+            chatmsgs[j].isChild = true
+            current.repeats.push(chatmsgs[j])
+          } else {
+            break
+          }
+        }
+        result.push(current)
+      }
+      return result
     },
 
     goTop () {
@@ -196,7 +277,21 @@ export default {
     DateFormat: function (value) {
       return formatDate(value)
     }
-  }
+  },
 
+  mounted () {
+    let current = Storage.get('current')
+    if (current.defaultSearch) {
+      this.search.nickname = current.defaultSearch
+    }
+  },
+
+  watch: {
+    'search.nickname': (newValue, oldValue) => {
+      let current = Storage.get('current')
+      current.defaultSearch = newValue
+      Storage.set('current', current)
+    }
+  }
 }
 </script>

@@ -102,6 +102,13 @@ module.exports = function (ctx) {
           pathRewrite:{
             '^/douyu':''
           }
+        },
+        '/douyucdn':{
+          target:'https://webconf.douyucdn.cn',
+          changeOrigin:true,
+          pathRewrite:{
+            '^/douyucdn':''
+          }
         }
       }
     },
