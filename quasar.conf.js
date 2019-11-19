@@ -40,6 +40,13 @@ module.exports = function (ctx) {
       //            (fastest compile time; minimum bundle size; most tedious)
       // * true   - Import everything from Quasar
       //            (not treeshaking Quasar; biggest bundle size; convenient)
+
+      config: {
+        loadingBar: {
+          color: 'blue'
+        }
+      },
+
       all: true,
 
       components: [],
@@ -80,7 +87,30 @@ module.exports = function (ctx) {
     devServer: {
       // https: true,
       // port: 8080,
-      open: true // opens browser window automatically
+      open: true, // opens browser window automatically
+      proxy:{
+        '/api':{
+          target:'http://tummy.fayelau.com:5438',
+          changeOrigin:true,
+          pathRewrite:{
+            '^/api':''
+          }
+        },
+        '/douyu':{
+          target:'http://open.douyucdn.cn',
+          changeOrigin:true,
+          pathRewrite:{
+            '^/douyu':''
+          }
+        },
+        '/douyucdn':{
+          target:'https://webconf.douyucdn.cn',
+          changeOrigin:true,
+          pathRewrite:{
+            '^/douyucdn':''
+          }
+        }
+      }
     },
 
     // animations: 'all', // --- includes all animations
