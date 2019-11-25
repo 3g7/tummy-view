@@ -54,9 +54,8 @@
           <q-item-section top class="col-lg-1 col-md-2">
             <q-item-label class="text-weight-medium">{{item.nickname}}</q-item-label>
             <q-item-label caption lines="1">
-                <q-badge color="blue">
-                    {{item.fansBrand}} {{item.fansLevel}}
-                </q-badge>
+              <q-badge color="blue" v-show="item.fansBrand">{{item.fansBrand}} {{item.fansLevel}}</q-badge>
+              <q-badge color="grey" v-show="!item.fansBrand">未佩戴粉丝牌</q-badge>
             </q-item-label>
           </q-item-section>
           <q-item-section style="max-width:60px">
@@ -131,9 +130,11 @@ export default {
     loadDgb (success) {
       DgbService.pageableSearch(this.search).then((response) => {
         if (response.success) {
-          if (response.size === 0) {
+          if (response.size < this.search.size) {
             this.initAllData = true
             this.$refs.infiniteScrollRef.stop()
+            this.items = this.items.concat(response.data)
+            return false
           }
           this.items = this.items.concat(response.data)
           this.total = response.total
@@ -187,13 +188,19 @@ export default {
 
     doSearch () {
       this.goTop()
-      this.$refs.infiniteScrollRef.resume()
       this.initAllData = false
       this.search.page = 0
       this.isSearching = true
       DgbService.pageableSearch(this.search).then((response) => {
         this.isSearching = false
         if (response.success) {
+          if (response.size < this.search.size) {
+            this.initAllData = true
+            this.$refs.infiniteScrollRef.stop()
+            this.items = response.data
+            return false
+          }
+          this.$refs.infiniteScrollRef.resume()
           this.items = response.data
           this.total = response.total
           this.search.page = 1

@@ -62,7 +62,8 @@
           <q-item-section top class="col-lg-1 col-md-2">
             <q-item-label class="text-weight-medium">{{item.nickname}}</q-item-label>
             <q-item-label caption lines="1">
-              <q-badge color="blue">{{item.fansBrand}} {{item.fansLevel}}</q-badge>
+              <q-badge color="blue" v-show="item.fansBrand">{{item.fansBrand}} {{item.fansLevel}}</q-badge>
+              <q-badge color="grey" v-show="!item.fansBrand">未佩戴粉丝牌</q-badge>
             </q-item-label>
           </q-item-section>
 
@@ -155,9 +156,11 @@ export default {
       ChatmsgService.pageableSearch(this.search).then(
         response => {
           if (response.success) {
-            if (response.size === 0) {
+            if (response.size < this.search.size) {
               this.initAllData = true
               this.$refs.infiniteScrollRef.stop()
+              response.data = this.handleRepeat(response.data)
+              this.items = this.items.concat(response.data)
               return false
             }
             response.data = this.handleRepeat(response.data)
@@ -191,7 +194,6 @@ export default {
 
     doSearch () {
       this.goTop()
-      this.$refs.infiniteScrollRef.resume()
       this.initAllData = false
       this.search.page = 0
       this.isSearching = true
@@ -199,6 +201,14 @@ export default {
         response => {
           this.isSearching = false
           if (response.success) {
+            if (response.size < this.search.size) {
+              this.initAllData = true
+              this.$refs.infiniteScrollRef.stop()
+              response.data = this.handleRepeat(response.data)
+              this.items = response.data
+              return false
+            }
+            this.$refs.infiniteScrollRef.resume()
             response.data = this.handleRepeat(response.data)
             this.items = response.data
             this.total = response.total
@@ -238,7 +248,8 @@ export default {
           let last = this.items[this.items.length - 1]
           if (
             last.txt === chatmsgs[i].txt &&
-            last.roomId === chatmsgs[i].roomId
+            last.roomId === chatmsgs[i].roomId &&
+            last.timestamp !== chatmsgs[i].timestamp
           ) {
             this.items[this.items.length - 1].repeats.push(chatmsgs[i])
             chatmsgs[i].isChild = true
@@ -252,7 +263,8 @@ export default {
         for (let j = i + 1; j < chatmsgs.length; j++) {
           if (
             chatmsgs[j].txt === current.txt &&
-            chatmsgs[j].roomId === current.roomId
+            chatmsgs[j].roomId === current.roomId &&
+            chatmsgs[j].timestamp !== current.timestamp
           ) {
             chatmsgs[j].isChild = true
             current.repeats.push(chatmsgs[j])
